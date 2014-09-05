@@ -66,11 +66,12 @@ window.main = function(){
         Three JS Things
     */
     
-    var sphere = window.sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(
-            50, //Radius
-            16, //Segments 
-            16  //Rings
+	//Setup initial Cube
+    var cube = window.cube = new THREE.Mesh(
+        new THREE.BoxGeometry(
+			100,
+			100,
+			100
         ),
         new THREE.MeshLambertMaterial(
             {
@@ -78,8 +79,10 @@ window.main = function(){
     	    }
     	)
     );
-    scene.add(sphere);
+    scene.add(cube);
     
+	
+	//Setup initial light 1
     var pointLight = window.pointLight = new THREE.PointLight(
         0xFFFFFF, //Colour
         2, //Intensity
@@ -88,6 +91,8 @@ window.main = function(){
     pointLight.position.set(10, 50, 130);
     scene.add(pointLight);
     
+	
+	//Setup Initial light 2
     var pointLight2 = window.pointLight2 = new THREE.PointLight(
         0xFFFFFF, //Colour
         2, //Intensity
@@ -96,26 +101,71 @@ window.main = function(){
     pointLight2.position.set(100, 100, -130);
     scene.add(pointLight2);
     
+	
+	//Setup the camera
     var camera = window.camera = new THREE.PerspectiveCamera(
-        45, //Viewing Angle 
+        70, //Viewing Angle 
         internalAspect, //Aspect Ratio 
         0.1, //Near 
         10000 //Far
     );
     camera.position.z = 300;
     scene.add(camera);
-    
-    window.keyControlled = camera;
+	
+	window.UI = {
+	
+		viewDown : undefined,
+	}
     
     //Object for the actor
-    window.actor = {};
+    window.actor = {
+	
+		moveForward : function(step){
+			
+			window.camera.position.setZ(window.camera.position.z - step);
+		},
+		moveBackward : function(step){
+		
+			window.camera.position.setZ(window.camera.position.z + step);
+		},
+		moveLeft : function(step){
+		
+			window.camera.position.setX(window.camera.position.x - step);
+		},
+		moveRight : function(step){
+		
+			window.camera.position.setX(window.camera.position.x + step);
+		},
+		movingLeft : false,
+		movingRight : false,
+		movingForward : false,
+		movingBackward : false,
+		
+		move : function(){
+		
+			//To be called on update
+			if(this.movingForward){
+				this.moveForward(2);
+			}
+			if(this.movingBackward){
+				this.moveBackward(2);
+			}
+			if(this.movingLeft){
+				this.moveLeft(2);
+			}
+			if(this.movingRight){
+				this.moveRight(2);
+			}
+		},
+	};
     
-    
+    //Set rendering in motion
     window.render();
-    window.updateState = function(){
-        
-    }
     
+	//Set update in motion
+	window.updateFrequency = 10;
+	window.setInterval(window.updateState, window.updateFrequency);
+	
 };
 
 window.render = function(){
@@ -124,17 +174,44 @@ window.render = function(){
 	window.requestAnimationFrame(window.render);
 };
 
+window.updateState = function(){
+//To be called every x miliseconds to update the state of the world
+
+	//Enable movement
+	window.actor.move();
+}
+
 /*
     UI
 */
 
+window.oncontextmenu = function(){
+//Disable right click antics
+
+	return false;
+}
+
 window.onclick = function(e){
     
     //console.log(e);
+	e.preventDefault();
 };
 window.onmousemove = function(e){
     
     //console.log(e);
+	if(e.which == 3){
+		if(window.UI.viewDown != undefined){
+		
+			//window.camera.rotation.set(0, (window.UI.viewDown.x - e.x) / window.canvas.clientWidth, 0);
+			window.camera.rotateX( (window.UI.viewDown.y - e.y) / window.canvas.clientHeight);
+			window.camera.rotateY( (window.UI.viewDown.x - e.x) / window.canvas.clientWidth);
+			window.UI.viewDown = e;
+			//console.log((window.UI.viewDown.x - e.x) / window.canvas.clientWidth)
+		}
+		else{
+			console.log("no viewDown")
+		}
+	}
 };
 
 window.onkeydown = function(e){
@@ -144,40 +221,52 @@ window.onkeydown = function(e){
     //console.log(e.resolveKeyCode());
     
     var temp = e.resolveKeyCode();
-    var step = 5;
-    
+
     if(temp=="W"){
-        
-        window.keyControlled.position.setZ(window.keyControlled.position.z - step);
+		
+        window.actor.movingForward = true;
     }
     else if(temp=="A"){
         
-        window.keyControlled.position.setX(window.keyControlled.position.x - step);
+        window.actor.movingLeft = true;
     }
     else if(temp=="S"){
-        
-        window.keyControlled.position.setZ(window.keyControlled.position.z + step);
+		
+        window.actor.movingBackward = true;
     }
     else if(temp=="D"){
-
-        window.keyControlled.position.setX(window.keyControlled.position.x + step);
+		
+        window.actor.movingRight = true;
     }
 };
 window.onkeyup = function(e){
     
+    var temp = e.resolveKeyCode();
     //console.log(e);
+	
+    if(temp=="W"){
+		
+        window.actor.movingForward = false;
+    }
+    else if(temp=="A"){
+        
+        window.actor.movingLeft = false;
+    }
+    else if(temp=="S"){
+		
+        window.actor.movingBackward = false;
+    }
+    else if(temp=="D"){
+		
+        window.actor.movingRight = false;
+    }
 };
 window.onkeypress = function(e){
     
-    //console.log(e);
 };
 
 
 
-window.onmouseup = function(e){
-    
-    //console.log(e);
-};
 window.onmouseenter = function(e){
     
     //console.log(e);
@@ -188,7 +277,17 @@ window.onmouseleave = function(e){
 };
 window.onmousedown = function(e){
     
+    //console.log(e.which);
+	if(e.which == 3){
+		window.UI.viewDown = e;
+	}
+};
+window.onmouseup = function(e){
+    
     //console.log(e);
+	if(e.which == 3){
+		window.UI.viewDown = undefined;
+	}
 };
 
 KeyboardEvent.prototype.resolveKeyCode = function(){
